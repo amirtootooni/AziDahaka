@@ -4,6 +4,7 @@ from general_solver import gurobi_solve
 import numpy as np
 import time
 import os
+import re
 
 def test(n, T, fun='polynomail'):
     d, r, c, f = generate_bounds(n, T, fun=fun)
@@ -82,4 +83,29 @@ def save_datasets():
             np.save(base_path + 'r.npy', r)
             np.save(base_path + 'd.npy', d)
 
-save_datasets()
+def save_results():
+    files = [x[0] for x in os.walk('data/')]
+    
+    for i in range(1, len(files)):
+        base_path = files[i]
+        n = int(re.search('n_(.*)_T', files[i]).group(1))
+        T = int(re.search('T_(.*)', files[i]).group(1))
+
+        f = np.load(base_path + '/f.npy').tolist()
+        c = np.load(base_path + '/c.npy')
+        r = np.load(base_path + '/r.npy')
+        d = np.load(base_path + '/d.npy')
+        result = np.zeros((2,20))
+
+        for j in range(40):
+            if j < 20:
+                ex_new = time.time()
+                primal(1, n, f, c, d, r)
+                ex_new = time.time() - ex_new
+                result[0][j] = ex_new
+            else:
+                ex, _ = gurobi_solve(n, f, c, d, r)
+                result[1][j-20] = ex_new
+        
+        np.save('results/n_' + str(n) + '_T_' + str(T) +'.npy', result)
+
