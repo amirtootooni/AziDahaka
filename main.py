@@ -1,7 +1,9 @@
 from dataset_generation import generate_bounds
 from new_method import primal 
 from general_solver import gurobi_solve
+import numpy as np
 import time
+import os
 
 def test(n, T, fun='polynomail'):
     d, r, c, f = generate_bounds(n, T, fun=fun)
@@ -50,4 +52,34 @@ def show_details(n, t, d, r, c, f, T, detailed=False):
     
     return sumObj
 
-test(200, 10000, fun='random')
+
+def save_datasets():
+    while (input('What to continue? y/n ') == 'y'):
+        n = int(input('What n? '))
+        T = int(input('What T? '))
+        fun = 'random' if input('What function? r/p ')== 'r' else 'polynomail'
+
+        try:
+            d, r, c, f = generate_bounds(n, T, fun=fun)
+            ex, obj = gurobi_solve(n, f, c, d, r)
+        except:
+            print('Got an exception')
+            continue
+        
+        print('execution time of gurobi: ', ex)
+        print('objective of gurobi: ', obj)
+        print('-------------------------------')
+
+        if(input('Do you want to save this example? y/n ') == 'y'):
+            base_path = 'data/n_' + str(n) + '_T_' + str(T) + '/'
+
+            if not os.path.exists(base_path):
+                os.makedirs(base_path)
+
+            np_f = np.asarray(f)
+            np.save(base_path + 'f.npy', np_f)
+            np.save(base_path + 'c.npy', c)
+            np.save(base_path + 'r.npy', r)
+            np.save(base_path + 'd.npy', d)
+
+save_datasets()
