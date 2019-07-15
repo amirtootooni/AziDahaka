@@ -5,6 +5,8 @@ import numpy as np
 import time
 import os
 import re
+import matplotlib
+import matplotlib.pyplot as plt
 
 def test(n, T, fun='polynomail'):
     d, r, c, f = generate_bounds(n, T, fun=fun)
@@ -53,59 +55,126 @@ def show_details(n, t, d, r, c, f, T, detailed=False):
     
     return sumObj
 
+def generate_plots():
+    ns = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+    Ts = [50, 100, 200, 500, 1000, 2000, 5000, 8000, 10000, 20000, 50000, 100000]
 
-def save_datasets():
-    while (input('What to continue? y/n ') == 'y'):
-        n = int(input('What n? '))
-        T = int(input('What T? '))
-        fun = 'random' if input('What function? r/p ')== 'r' else 'polynomail'
-
-        try:
-            d, r, c, f = generate_bounds(n, T, fun=fun)
-            ex, obj = gurobi_solve(n, f, c, d, r)
-        except:
-            print('Got an exception')
-            continue
-        
-        print('execution time of gurobi: ', ex)
-        print('objective of gurobi: ', obj)
-        print('-------------------------------')
-
-        if(input('Do you want to save this example? y/n ') == 'y'):
-            base_path = 'data/n_' + str(n) + '_T_' + str(T) + '/'
-
-            if not os.path.exists(base_path):
-                os.makedirs(base_path)
-
-            np_f = np.asarray(f)
-            np.save(base_path + 'f.npy', np_f)
-            np.save(base_path + 'c.npy', c)
-            np.save(base_path + 'r.npy', r)
-            np.save(base_path + 'd.npy', d)
-
-def save_results():
-    files = [x[0] for x in os.walk('data/')]
-    
-    for i in range(1, len(files)):
-        base_path = files[i]
-        n = int(re.search('n_(.*)_T', files[i]).group(1))
-        T = int(re.search('T_(.*)', files[i]).group(1))
-
-        f = np.load(base_path + '/f.npy').tolist()
-        c = np.load(base_path + '/c.npy')
-        r = np.load(base_path + '/r.npy')
-        d = np.load(base_path + '/d.npy')
-        result = np.zeros((2,20))
-
-        for j in range(40):
-            if j < 20:
-                ex_new = time.time()
+    for n in ns:
+        means_new = []
+        stds_new = []
+        means_gen = []
+        stds_gen = []
+        lables = []
+        for T in Ts:
+            if T/n > 1001:
+                break
+            try:
+                d, r, c, f = generate_bounds(n, T)
                 primal(1, n, f, c, d, r)
-                ex_new = time.time() - ex_new
-                result[0][j] = ex_new
-            else:
-                ex, _ = gurobi_solve(n, f, c, d, r)
-                result[1][j-20] = ex_new
-        
-        np.save('results/n_' + str(n) + '_T_' + str(T) +'.npy', result)
+            except:
+                continue
+            iterations = 8 if n < 5000 and T < 20000 else 1
+            results = np.zeros((2, iterations))
+            for i in range(iterations):
+                ex = time.time()
+                primal(1, n, f, c, d, r)
+                results[0][i] = time.time() - ex
+                results[1][i], _= gurobi_solve(n, f, c, d, r)
+            
+            lables.append('T='+ str(T))
+            means_new.append(round(results[0, :].mean(), 5))
+            stds_new.append(results[0, :].std())
+            means_gen.append(round(results[1, :].mean(), 5))
+            stds_gen.append(results[1, :].std())
 
+        ind = np.arange(len(lables))  # the x locations for the groups
+        width = 0.35  # the width of the bars
+
+        fig, ax = plt.subplots(figsize=(len(lables), 12))
+        rects1 = ax.bar(ind - width/2, means_new, width, yerr=stds_new, label='Our Method')
+        rects2 = ax.bar(ind + width/2, means_gen, width, yerr=stds_gen, label='Gurobi Solver')
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        ax.set_ylabel('Execution times (s)')
+        ax.set_title('Performance comparison for n = ' + str(n) + ' and different T')
+        ax.set_xticks(ind)
+        ax.set_xticklabels(lables)
+        ax.legend()
+
+        autolabel(ax, rects1, "left")
+        autolabel(ax, rects2, "right")
+        fig.tight_layout()
+        plt.show()
+
+        
+
+def autolabel(ax, rects, xpos='center'):
+    ha = {'center': 'center', 'right': 'left', 'left': 'right'}
+    offset = {'center': 0, 'right': 1, 'left': -1}
+    
+    for rect in rects:
+        height = rect.get_height()
+        ax.annotate('{}'.format(height),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(offset[xpos]*3, 3),  # use 3 points offset
+                    textcoords="offset points",  # in both directions
+                    ha=ha[xpos], va='bottom')
+
+generate_plots()
+
+# useless functions:
+
+# def save_datasets():
+#     while (input('What to continue? y/n ') == 'y'):
+#         n = int(input('What n? '))
+#         T = int(input('What T? '))
+#         fun = 'random' if input('What function? r/p ')== 'r' else 'polynomail'
+
+#         try:
+#             d, r, c, f = generate_bounds(n, T, fun=fun)
+#             ex, obj = gurobi_solve(n, f, c, d, r)
+#         except:
+#             print('Got an exception')
+#             continue
+        
+#         print('execution time of gurobi: ', ex)
+#         print('objective of gurobi: ', obj)
+#         print('-------------------------------')
+
+#         if(input('Do you want to save this example? y/n ') == 'y'):
+#             base_path = 'data/n_' + str(n) + '_T_' + str(T) + '/'
+
+#             if not os.path.exists(base_path):
+#                 os.makedirs(base_path)
+
+#             np_f = np.asarray(f)
+#             np.save(base_path + 'f.npy', np_f)
+#             np.save(base_path + 'c.npy', c)
+#             np.save(base_path + 'r.npy', r)
+#             np.save(base_path + 'd.npy', d)
+
+# def save_results():
+#     files = [x[0] for x in os.walk('data/')]
+    
+#     for i in range(1, len(files)):
+#         base_path = files[i]
+#         n = int(re.search('n_(.*)_T', files[i]).group(1))
+#         T = int(re.search('T_(.*)', files[i]).group(1))
+
+#         f = np.load(base_path + '/f.npy').tolist()
+#         c = np.load(base_path + '/c.npy')
+#         r = np.load(base_path + '/r.npy')
+#         d = np.load(base_path + '/d.npy')
+#         result = np.zeros((2,20))
+
+#         for j in range(40):
+#             if j < 20:
+#                 ex_new = time.time()
+#                 primal(1, n, f, c, d, r)
+#                 ex_new = time.time() - ex_new
+#                 result[0][j] = ex_new
+#             else:
+#                 ex, _ = gurobi_solve(n, f, c, d, r)
+#                 result[1][j-20] = ex_new
+        
+#         np.save('results/n_' + str(n) + '_T_' + str(T) +'.npy', result)
