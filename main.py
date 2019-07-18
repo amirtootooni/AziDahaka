@@ -1,6 +1,6 @@
 from dataset_generation import generate_bounds
 from new_method import primal 
-from general_solver import gurobi_solve
+from general_solver import gurobi_solve_lut, gurobi_solve_poly
 import numpy as np
 import time
 import os
@@ -9,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 def test(n, T, fun='polynomail'):
-    d, r, c, f = generate_bounds(n, T, fun=fun)
+    d, r, c, f, coefs = generate_bounds(n, T, fun=fun)
 
     ex_new = time.time()
     t = primal(1, n, f, c, d, r)
@@ -19,7 +19,7 @@ def test(n, T, fun='polynomail'):
 
     obj_new = show_details(n, t, d, r, c, f, T)
 
-    ex_general, obj_general = gurobi_solve(n, f, c, d, r)
+    ex_general, obj_general = gurobi_solve_poly(n, coefs, c, d, r)
 
     print('---------------------------------------')
     print('execution time of new method: ', ex_new)
@@ -55,10 +55,11 @@ def show_details(n, t, d, r, c, f, T, detailed=False):
     
     return sumObj
 
-def generate_plots():
-    ns = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+def generate_plots(func= 'polynomail'):
+    ns = [100, 500, 1000, 2000, 5000, 10000]
     Ts = [50, 100, 200, 500, 1000, 2000, 5000, 8000, 10000, 20000, 50000, 100000]
-
+    breaks = 0
+    exceptions = 0
     for n in ns:
         means_new = []
         stds_new = []
@@ -66,37 +67,39 @@ def generate_plots():
         stds_gen = []
         lables = []
         for T in Ts:
-            if T/n > 1001:
-                break
+            if T/n < 10:
+                continue
+            
             try:
-                d, r, c, f = generate_bounds(n, T)
-                primal(1, n, f, c, d, r)
+                d, r, c, f, coefs = generate_bounds(n, T, fun=func)
+                obj_new = primal(1, n, f, c, d, r)
             except:
                 continue
-            iterations = 8 if n < 5000 and T < 20000 else 1
+
+            iterations = 3 # if n < 5000 and T < 20000 else 2
             results = np.zeros((2, iterations))
             for i in range(iterations):
                 ex = time.time()
                 primal(1, n, f, c, d, r)
                 results[0][i] = time.time() - ex
-                results[1][i], _= gurobi_solve(n, f, c, d, r)
-            
-            lables.append('T='+ str(T))
-            means_new.append(round(results[0, :].mean(), 5))
-            stds_new.append(results[0, :].std())
-            means_gen.append(round(results[1, :].mean(), 5))
-            stds_gen.append(results[1, :].std())
+                results[1][i], _ = gurobi_solve_poly(n, coefs, c, d, r)
 
+            lables.append('T='+ str(T))
+            means_new.append(round(results[0, :].mean(), 4))
+            stds_new.append(results[0, :].std())
+            means_gen.append(round(results[1, :].mean(), 4))
+            stds_gen.append(results[1, :].std())
+            
         ind = np.arange(len(lables))  # the x locations for the groups
-        width = 0.35  # the width of the bars
+        width = 0.30  # the width of the bars
 
         fig, ax = plt.subplots(figsize=(len(lables), 12))
         rects1 = ax.bar(ind - width/2, means_new, width, yerr=stds_new, label='Our Method')
-        rects2 = ax.bar(ind + width/2, means_gen, width, yerr=stds_gen, label='Gurobi Solver')
+        rects2 = ax.bar(ind + width/2, means_gen, width, yerr=stds_gen, label='Gurobi Solver with explicit polynomials')
 
         # Add some text for labels, title and custom x-axis tick labels, etc.
         ax.set_ylabel('Execution times (s)')
-        ax.set_title('Performance comparison for n = ' + str(n) + ' and different T')
+        ax.set_title('Performance comparison for n = ' + str(n) + ' and different T for quadratic objectives')
         ax.set_xticks(ind)
         ax.set_xticklabels(lables)
         ax.legend()
@@ -105,6 +108,8 @@ def generate_plots():
         autolabel(ax, rects2, "right")
         fig.tight_layout()
         plt.show()
+
+    print('Number of times the objectives were not equal: ', breaks)
 
         
 
@@ -120,7 +125,8 @@ def autolabel(ax, rects, xpos='center'):
                     textcoords="offset points",  # in both directions
                     ha=ha[xpos], va='bottom')
 
-generate_plots()
+# test(10, 2000, fun='polynomail')
+generate_plots(func='polynomail')
 
 # useless functions:
 

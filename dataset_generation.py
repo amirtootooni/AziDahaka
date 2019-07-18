@@ -14,6 +14,7 @@ def generate_bounds(n, T, fun='random'):
     d = np.zeros(n+1, dtype=int)
     r = np.zeros(n+1, dtype=int)
     f = [None]*(n+1)
+    coefs = [None]*(n+1)
     interval = int(T/n)
     slack = int(interval/2.5)
 
@@ -26,14 +27,14 @@ def generate_bounds(n, T, fun='random'):
         if r[i] == d[i]:
             r[i] = 0
         c[i] = random.randint(interval+slack, 2*interval)
-        f[i] = generate_function(c[i]+1, fun)
+        coefs[i], f[i] = generate_function(c[i]+1, fun)
     
     d[n] = T
     r[n] = T
     c[n] = T - d[n-1] + 1
-    f[n] = generate_function(c[n]+1, fun)
+    coefs[n], f[n] = generate_function(c[n]+1, fun)
 
-    return d, r, c, f
+    return d, r, c, f, coefs
 
 
 
@@ -51,4 +52,4 @@ def generate_function(c, fun):
             low = coefs[0] if i < 2 else f[i-1]-f[i-2]
             f[i] = 1 if i==0 else random.randint(f[i-1]+low, f[i-1]+low+10)
     
-    return f
+    return coefs.tolist(), f
