@@ -56,17 +56,17 @@ def show_details(n, t, d, r, c, f, T, detailed=False):
     return sumObj
 
 def generate_plots(func= 'polynomail'):
-    ns = [100, 500, 1000, 2000, 5000, 10000]
-    Ts = [50, 100, 200, 500, 1000, 2000, 5000, 8000, 10000, 20000, 50000, 100000]
+    ns = [50, 100, 200, 500, 1000, 2000]
+    Ts = [100000]
     breaks = 0
     exceptions = 0
-    for n in ns:
+    for T in Ts:
         means_new = []
         stds_new = []
         means_gen = []
         stds_gen = []
         lables = []
-        for T in Ts:
+        for n in ns:
             if T/n < 10:
                 continue
             
@@ -76,7 +76,7 @@ def generate_plots(func= 'polynomail'):
             except:
                 continue
 
-            iterations = 3 # if n < 5000 and T < 20000 else 2
+            iterations = 2 # if n < 5000 and T < 20000 else 2
             results = np.zeros((2, iterations))
             for i in range(iterations):
                 ex = time.time()
@@ -84,7 +84,7 @@ def generate_plots(func= 'polynomail'):
                 results[0][i] = time.time() - ex
                 results[1][i], _ = gurobi_solve_poly(n, coefs, c, d, r)
 
-            lables.append('T='+ str(T))
+            lables.append('n='+ str(n))
             means_new.append(round(results[0, :].mean(), 4))
             stds_new.append(results[0, :].std())
             means_gen.append(round(results[1, :].mean(), 4))
@@ -99,7 +99,7 @@ def generate_plots(func= 'polynomail'):
 
         # Add some text for labels, title and custom x-axis tick labels, etc.
         ax.set_ylabel('Execution times (s)')
-        ax.set_title('Performance comparison for n = ' + str(n) + ' and different T for quadratic objectives')
+        ax.set_title('Performance comparison for T = ' + str(T) + ' and different n for quadratic objectives')
         ax.set_xticks(ind)
         ax.set_xticklabels(lables)
         ax.legend()
