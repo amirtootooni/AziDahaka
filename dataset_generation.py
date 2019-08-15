@@ -15,18 +15,17 @@ def generate_bounds(n, T, fun='random'):
     r = np.zeros(n+1, dtype=int)
     f = [None]*(n+1)
     coefs = [None]*(n+1)
-    interval = int(T/n)
-    slack = int(interval/2.5)
+    interval = int(T*2.0/n)
 
     d[1] = random.randint(1, interval)
     
     for i in range(1, n):
         if i > 1:
-            d[i] = random.randint(d[i-1] + slack, int(min(d[i-1] + interval + slack, T - interval)))
-        r[i] = random.randint(r[i-1], d[i]-d[i-1]+r[i-1]-1)
+            d[i] = random.randint(d[i-1], int(min(d[i-1] + interval, T)))
+        r[i] = random.randint(0, d[i]-d[i-1]+r[i-1])
         if r[i] == d[i]:
             r[i] = 0
-        c[i] = random.randint(interval+slack, 2*interval)
+        c[i] = random.randint(1, 2*interval)
         coefs[i], f[i] = generate_function(c[i]+1, fun)
     
     d[n] = T
@@ -35,8 +34,6 @@ def generate_bounds(n, T, fun='random'):
     coefs[n], f[n] = generate_function(c[n]+1, fun)
 
     return d, r, c, f, coefs
-
-
 
 def generate_function(c, fun):
     f = [None]*c
@@ -53,3 +50,5 @@ def generate_function(c, fun):
             f[i] = 1 if i==0 else random.randint(f[i-1]+low, f[i-1]+low+10)
     
     return coefs.tolist(), f
+
+# print(generate_bounds(10, 1000))

@@ -126,7 +126,7 @@ def autolabel(ax, rects, xpos='center'):
                     ha=ha[xpos], va='bottom')
 
 # test(10, 2000, fun='polynomail')
-generate_plots(func='polynomail')
+# generate_plots(func='polynomail')
 
 # useless functions:
 
@@ -184,3 +184,15 @@ generate_plots(func='polynomail')
 #                 result[1][j-20] = ex_new
         
 #         np.save('results/n_' + str(n) + '_T_' + str(T) +'.npy', result)
+
+# for i in range(1,10):
+#     d, r, c, f, coefs = generate_bounds(10000, 100000, fun='random')
+#     try:
+#         t = primal(1, 10000, f, c, d, r)
+#         s = 0
+#         for i in range(10000):
+#             s += t[i]
+#         print(t)
+#         print(s)
+#     except:
+#         print("infeasible")
