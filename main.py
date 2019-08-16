@@ -76,7 +76,7 @@ def generate_plots(func= 'polynomail'):
             except:
                 continue
 
-            iterations = 2 # if n < 5000 and T < 20000 else 2
+            iterations = 20 # if n < 5000 and T < 20000 else 2
             results = np.zeros((2, iterations))
             for i in range(iterations):
                 ex = time.time()
@@ -124,6 +124,43 @@ def autolabel(ax, rects, xpos='center'):
                     xytext=(offset[xpos]*3, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha=ha[xpos], va='bottom')
+
+def showSpeedUp():
+    ns = [10, 50, 100, 200, 500, 1000, 2000, 5000, 8000, 10000]
+    Ts = [50, 100, 200, 500, 1000, 2000, 5000, 8000, 10000, 20000, 50000, 100000]
+    results = [None]
+    for n in ns:
+        for T in Ts:
+            if T/n < 5:
+                continue
+            problemSU = np.zeros(10)
+            problem = 0
+            while problem < 10:
+                d, r, c, f, coefs = None
+                try:
+                    d, r, c, f, coefs = generate_bounds(n, T, fun='random')
+                    primal(1, n, f, c, d, r)
+                    problem = problem + 1
+                except:
+                    continue
+                trailSU = np.zeros(10)
+                for trial in range(10):
+                    ex1 = time.time()
+                    primal(1, n, f, c, d, r)
+                    ex1 = time.time() - ex1
+                    # ex2, _ = gurobi_solve_poly(n, coefs, c, d, r)
+                    ex2, _ = gurobi_solve_poly(n, f, c, d, r)
+                    trailSU[trial] = ex2 * 1.0 / ex1
+
+                problemSU[problem] = np.mean(trailSU)
+
+            result = 'T = ' + str(T) + ', n = ' + str(n) + ' speedup = ' + str(np.mean(problemSU))
+            results.append(result)
+    
+    print(results)
+
+
+
 
 # test(10, 2000, fun='polynomail')
 # generate_plots(func='polynomail')
@@ -185,14 +222,15 @@ def autolabel(ax, rects, xpos='center'):
         
 #         np.save('results/n_' + str(n) + '_T_' + str(T) +'.npy', result)
 
-# for i in range(1,10):
-#     d, r, c, f, coefs = generate_bounds(10000, 100000, fun='random')
-#     try:
-#         t = primal(1, 10000, f, c, d, r)
-#         s = 0
-#         for i in range(10000):
-#             s += t[i]
-#         print(t)
-#         print(s)
-#     except:
-#         print("infeasible")
+for i in range(1,10):
+    d, r, c, f, coefs = generate_bounds(50, 200, fun='random')
+    print(f)
+    try:
+        t = primal(1, 50, f, c, d, r)
+        s = 0
+        for i in range(50):
+            s += t[i]
+        print(t)
+        print(s)
+    except:
+        print("infeasible")

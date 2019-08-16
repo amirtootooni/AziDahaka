@@ -26,28 +26,32 @@ def generate_bounds(n, T, fun='random'):
         if r[i] == d[i]:
             r[i] = 0
         c[i] = random.randint(1, 2*interval)
-        coefs[i], f[i] = generate_function(c[i]+1, fun)
+        coefs[i], f[i] = generate_function(c[i]+1, fun, T, n)
     
     d[n] = T
     r[n] = T
     c[n] = T - d[n-1] + 1
-    coefs[n], f[n] = generate_function(c[n]+1, fun)
+    coefs[n], f[n] = generate_function(c[n]+1, fun, T, n)
 
     return d, r, c, f, coefs
 
-def generate_function(c, fun):
+def generate_function(c, fun, T, n):
     f = [None]*c
-    coefs = np.random.randint(0, high=15, size=3)
-    
+    high = T/n
+    coefs = np.random.randint(1, high=high, size=3)
+    high = high/2
+    coefs[1] = random.randint(-high, high)
+    coefs[2] = random.randint(-high, high)
+
     for i in range(c):
-        #simple convex 2nd order polynomail is used
+        # simple convex 2nd order polynomail is used
         if(fun == 'polynomail'):
             f[i] = coefs[0]*(i**2) + coefs[1]*i + coefs[2]
 
-        #random non-decreasing convex function
+        # random non-decreasing convex function
         if(fun == 'random'):
-            low = coefs[0] if i < 2 else f[i-1]-f[i-2]
-            f[i] = 1 if i==0 else random.randint(f[i-1]+low, f[i-1]+low+10)
+            low = coefs[1]*2 if i < 2 else f[i-1]-f[i-2]
+            f[i] = coefs[1] if i==0 else random.randint(f[i-1]+low, f[i-1]+low+high)
     
     return coefs.tolist(), f
 
